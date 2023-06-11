@@ -13,6 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"
         integrity="sha384-fbbOQedDUMZZ5KreZpsbe1LCZPVmfTnH7ois6mU1QK+m14rQ1l2bGBq41eYeM/fS"
         crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         *,
         *:before,
@@ -204,7 +205,8 @@
     </style>
 </head>
 
-<body> <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+<body>
+    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
         style="display: none;">
         <symbol id="wave">
             <path
@@ -244,7 +246,7 @@
                     </div>
                 </div>
                 <div class="mb-3 row">
-                    <label for="input2" class="col-sm-2 col-form-label" >Mức nước tối đa % :</label>
+                    <label for="input2" class="col-sm-2 col-form-label">Mức nước tối đa % :</label>
                     <div class="col-sm-10">
                         <input type="number" class="form-control" id="input2" max="100" min="0" value="100">
                     </div>
@@ -260,22 +262,26 @@
             </div>
         </div>
     </div>
-    <script>      
+    <script>
         var percent = 0;
         var interval;
-        function setPercent(p){
+        function setPercent(p) {
             let cnt = document.getElementById("count");
             let water = document.getElementById("water");
-            let percentText = cnt.innerText; 
+            let percentText = cnt.innerText;
             cnt.innerHTML = percent;
             water.style.transform = 'translate(0' + ',' + (100 - percent) + '%)';
             if (percent == 100) { clearInterval(interval); }
 
         }
         interval = setInterval(function () {
-            percent++; 
+            percent++;
             setPercent(percent)
-        }, 60);    
+            axios.get("http://192.168.50.100/status").then(function (response) {
+                console.log(response)
+            })
+        }, 1000);
+        s
     </script>
 </body>
 
