@@ -14,7 +14,6 @@
         integrity="sha384-fbbOQedDUMZZ5KreZpsbe1LCZPVmfTnH7ois6mU1QK+m14rQ1l2bGBq41eYeM/fS"
         crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     <style>
         *,
         *:before,
@@ -252,37 +251,141 @@
                         <input type="number" class="form-control" id="input2" max="100" min="0" value="100">
                     </div>
                 </div>
-                <fieldset id="switch" class="radio mt-3 row justify-content-evenly ">
+                <fieldset id="switch" class="radio mt-3 mb-3 row justify-content-evenly ">
                     <input name="switch" id="on" type="radio">
                     <label for="on" class="col-auto mt-3">ON</label>
                     <input name="switch" id="off" type="radio">
                     <label for="off" class="col-auto mt-3">OFF</label>
-                    <input checked="" name="switch" id="auto" type="checkbox">
+                    <input checked="" id="auto" type="checkbox">
                     <label for="auto" class="col-auto mt-3">AUTO</label>
                 </fieldset>
+                <div id="write" style="display: none;">
+                    <h6>WRITING</h6>
+                </div>
             </div>
         </div>
     </div>
     <script>
-        var percent = 0;
-        var interval;
-        function setPercent(p) {
-            let cnt = document.getElementById("count");
-            let water = document.getElementById("water");
-            let percentText = cnt.innerText;
-            cnt.innerHTML = percent;
-            water.style.transform = 'translate(0' + ',' + (100 - percent) + '%)';
-            if (percent == 100) { clearInterval(interval); }
-
+        let intervalId 
+        let Writing = false;
+        let cnt = document.getElementById("count");
+        let water = document.getElementById("water");
+        let minInp = document.getElementById("input1");
+        let maxInp = document.getElementById("input2");
+        let autoCB = document.getElementById("auto");
+        let onPump = document.getElementById("on");
+        let offPump = document.getElementById("off")
+        let WritingLB = document.getElementById("write");
+        function WritingMode(mode) {
+            if (mode) {
+                Writing = true;
+                WritingLB.style.display="block"
+            } else {
+                Writing = false;
+                WritingLB.style.display="none"
+            }
         }
-        interval = setInterval(function () {
-            percent++;
-            setPercent(percent)
-            axios.get("http://192.168.50.100/status").then(function (response) {
-                console.log(response)
+        minInp.onclick = () => {
+            WritingMode(true)
+        }
+        minInp.onkeyup = function(e) {
+            if (e.keyCode === 13) {
+                WritingMode(false)
+                if (minInp.value > -1 && minInp.value <= Number(maxInp.value )- 5) {
+                    axios.post("http://192.168.50.100/setting", {
+                        "min": minInp.value
+                    }).then(function () {
+                        alert("Mức thấp được đổi thành " + minInp.value + " %")
+                    })
+                } else {
+                    alert("Mức thấp >= 0 và <= mức cao -5")
+                    minInp.value = (Number(maxInp.value) - 5) > 100 ? 100 : Number(maxInp.value) - 5
+                }
+            }
+        }
+        maxInp.onclick = () => {
+            WritingMode(true)
+        }
+        maxInp.onkeyup=function(e) {
+            if (e.keyCode === 13) {
+                WritingMode(false)
+                if (maxInp.value < 101 && maxInp.value >= Number(minInp.value) + 5) {
+                    console.log(maxInp.value)
+                    axios.post("http://192.168.50.100/setting", {
+                        "max": maxInp.value
+                    }).then(function () {
+                        alert("Mức cao được đổi thành " + maxInp.value + " %")
+                    })
+                } else {
+                    alert("Mức cao >=mức thấp +5 và <= 100")
+                    maxInp.value = (Number(minInp.value) + 5) > 100 ? 100 : Number(minInp.value) + 5
+                }
+            }
+        }
+        autoCB.onclick = () => {
+            let s
+            let mess
+            if (autoCB.checked) {
+                s = "ON"
+                mess = "Bật auto"
+            } else {
+                s = "OFF"
+                mess = "Tắt auto"
+            }
+            axios.post("http://192.168.50.100/setting", {
+                "auto": s
+            }).then(function () {
+                alert(mess)
             })
-        }, 1000);
-        s
+        }
+        onPump.onclick = () => {
+            axios.post("http://192.168.50.100/control", {
+                "pump": "ON"
+            }).then(function () {
+                alert("Bật bơm thủ công")
+            })
+        }
+        offPump.onclick = () => {
+            axios.post("http://192.168.50.100/control", {
+                "pump": "OFF"
+            }).then(function () {
+                alert("Tắt bơm thủ công")
+            })
+        }
+
+        function setPercent(p) {
+            if (p > 100) { p = 100 }
+            if (p < 00) { p = 0 }
+            let percentText = cnt.innerText;
+            cnt.innerHTML = p;
+            water.style.transform = 'translate(0' + ',' + (100 - p) + '%)';
+        }
+        function setInputMAX(value) {
+            maxInp.value = value > 100 ? 100 :value
+        }
+        function setInputMIN(value) {
+            minInp.value = value > 100 ? 100 :value
+        }
+        function setInputAUTO(value) {
+            autoCB.checked = value
+        }
+        intervalId = setInterval(function () {
+            axios.get("http://192.168.50.100/status").then(function (response) {
+                console.log(response.data)
+                if (!Writing) {
+                    setInputMAX(response.data.max)
+                    setInputMIN(response.data.min)
+                    setPercent(response.data.capacity)
+                    setInputAUTO(response.data.auto)
+                    if (response.data.pump) {
+                        onPump.checked = true
+                    } else {
+                        offPump.checked = true
+                    }
+                }
+            })
+        }, 5000);
+
     </script>
 </body>
 
